@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Pages
-import Home from "./pages/Home";
+import Home from "client/src/pages/Home";
 import Auth from "./pages/Auth";
 
 // Common
@@ -12,7 +12,7 @@ import AdminRoute from "./components/common/AdminRoute";
 import Cart from "./pages/Cart";
 import Wishlist from "./components/user/Wishlist";
 import UserOrders from "./components/user/UserOrders";
-import Checkout from "./pages/Checkout";
+import Checkout from "client/src/pages/Checkout";
 
 
 // Admin
