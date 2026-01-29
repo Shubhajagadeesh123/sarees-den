@@ -3,10 +3,12 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 // Pages
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
+import ShopAll from "./pages/ShopAll";
 
 // Common
 import Navbar from "./components/common/Navbar";
 import AdminRoute from "./components/common/AdminRoute";
+import Footer from './components/common/Footer';
 
 // User
 import Cart from "./pages/Cart";
@@ -28,66 +30,72 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* Navbar visible on all pages */}
-      <Navbar />
+      {/* 1. This wrapper ensures the footer sticks to the bottom */}
+      <div className="flex flex-col min-h-screen">
+        
+        <Navbar />
 
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<Home />} />
-        <Route path="/auth" element={<Auth />} />
+        {/* 2. Main content area wraps the Routes */}
+        <main className="flex-grow">
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={<Home />} />
+            <Route path="/auth" element={<Auth />} />
 
-        {/* Customer protected */}
-        <Route
-          path="/cart"
-          element={user ? <Cart /> : <Navigate to="/auth" />}
-        />
-        <Route
-          path="/wishlist"
-          element={user ? <Wishlist /> : <Navigate to="/auth" />}
-        />
+            {/* Customer protected */}
+            <Route
+              path="/cart"
+              element={user ? <Cart /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/wishlist"
+              element={user ? <Wishlist /> : <Navigate to="/auth" />}
+            />
 
-        <Route path="/Checkout" element={<Checkout />} />
+            <Route path="/Checkout" element={<Checkout />} />
 
-        <Route
-        path="/my-orders"
-        element={user ? <UserOrders /> : <Navigate to="/auth" />}
-        />
+            <Route
+              path="/my-orders"
+              element={user ? <UserOrders /> : <Navigate to="/auth" />}
+            />
 
-        {/* Seller protected */}
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <AddSaree />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/manage"
-          element={
-            <AdminRoute>
-              <ManageProducts />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/orders"
-          element={
-            <AdminRoute>
-              <Orders />
-            </AdminRoute>
-          }
-        />
+            {/* Seller protected */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AddSaree />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/manage"
+              element={
+                <AdminRoute>
+                  <ManageProducts />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/orders"
+              element={
+                <AdminRoute>
+                  <Orders />
+                </AdminRoute>
+              }
+            />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" />} />
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" />} />
 
-        <Route
-        path="/wishlist"
-        element={user ? <Wishlist /> : <Navigate to="/auth" />}
-        />
+            <Route path="/shop-all" element={<ShopAll />} />
+          </Routes>
+        </main>
 
-      </Routes>
+        {/* 3. Footer placed here will appear on all pages */}
+        <Footer />
+
+      </div>
     </BrowserRouter>
   );
 }

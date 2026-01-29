@@ -17,57 +17,73 @@ const SareeCard = ({ saree }) => {
     navigate("/cart");
   };
 
-  const handleWishlist = async () => {
+  const handleWishlist = async (e) => {
+    e.stopPropagation(); 
     if (!user) {
       alert("Please login to use wishlist");
       return;
     }
-
     await addToWishlist(user.email, saree);
     alert("Added to wishlist ❤️");
   };
 
   return (
-    <div className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden relative">
+    /* flex flex-col h-full ensures cards align perfectly in the grid */
+    /* Removed all borders, shadows, and rounded corners for a seamless look */
+    <div className="bg-transparent flex flex-col h-full relative group transition-all duration-500">
 
-      {/* ❤️ Wishlist */}
+      {/* ❤️ Minimalist Wishlist Button */}
       <button
         onClick={handleWishlist}
-        className="absolute top-3 right-3 bg-white rounded-full p-2 shadow hover:scale-110 transition"
-        title="Add to Wishlist"
+        className="absolute top-4 right-4 z-20 bg-white/60 backdrop-blur-md rounded-full p-2 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300"
       >
-        ❤️
+        <span className="text-red-500 text-sm">❤️</span>
       </button>
 
-      {/* Image */}
-      <img
-        src={saree.image}
-        alt={saree.name}
-        className="h-52 w-full object-cover"
-      />
+      {/* 🖼️ High-Impact Tall Image Container 
+          Applying your requested height: calc(var(--spacing) * 130)
+          Removed all borders and backgrounds for the image wrapper */}
+      <div 
+        className="relative w-full overflow-hidden"
+        style={{ height: 'calc(var(--spacing) * 130)' }}
+      >
+        <img
+          src={saree.image}
+          alt={saree.name}
+          /* object-top ensures the model's face/saree drape is prioritized */
+          className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105"
+        />
+      </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <h3 className="font-semibold text-lg mb-1">
-          {saree.name}
-        </h3>
+      {/* Content Section - Styled for high-end boutique aesthetic */}
+      <div className="pt-8 pb-4 flex flex-col flex-grow text-center">
+        
+        {/* Title Container - Centered and Spaced */}
+        <div className="h-12 flex items-center justify-center mb-1 px-2">
+          <h3 className="font-medium text-gray-900 text-xl uppercase tracking-[0.1em] line-clamp-1">
+            {saree.name}
+          </h3>
+        </div>
 
-        <p className="text-[#d4af37] font-bold text-lg mb-4">
+        <p className="text-[#b8860b] font-bold text-2xl mb-8">
           ₹{saree.price}
         </p>
 
-        {/* Buttons */}
-        <div className="flex gap-2">
+        {/* 🔘 Aligned Action Buttons 
+            mt-auto ensures these stay in a perfect horizontal line across the grid */}
+        <div className="mt-auto flex flex-col gap-3 px-4 pb-4">
           <button
             onClick={handleAddToCart}
-            className="flex-1 bg-[#7b1e1e] text-white py-2 rounded-lg hover:bg-[#5e1515]"
+            /* Added h-12 for a taller, more prominent button */
+            className="w-full h-20 bg-[#7b1e1e] text-white flex items-center justify-center text-sm font-bold uppercase tracking-[0.2em] hover:bg-black transition-all duration-300 shadow-md active:scale-95"
           >
             Add to Cart
           </button>
 
           <button
             onClick={handleBuyNow}
-            className="flex-1 border border-[#7b1e1e] text-[#7b1e1e] py-2 rounded-lg hover:bg-[#fff1f1]"
+            /* Added h-12 to match the Add to Cart button exactly */
+            className="w-full h-20 border-2 border-gray-800 text-gray-800 flex items-center justify-center text-sm font-bold uppercase tracking-[0.2em] hover:bg-gray-800 hover:text-white transition-all duration-300 active:scale-95"
           >
             Buy Now
           </button>

@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "../../firebase";
 
 const AddSaree = () => {
   const [formData, setFormData] = useState({
@@ -14,25 +12,10 @@ const AddSaree = () => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Handle text inputs
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Convert image to base64
-  const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -44,41 +27,31 @@ const AddSaree = () => {
     try {
       setLoading(true);
 
-      // 1️⃣ Convert image
-      const base64Image = await convertToBase64(image);
+      // 1. Prepare FormData (Matches your server's upload.single('image'))
+      const data = new FormData();
+      data.append("name", formData.name);
+      data.append("category", formData.category);
+      data.append("price", formData.price);
+      data.append("stock", formData.stock);
+      data.append("description", formData.description);
+      data.append("image", image); // The key 'image' must match req.file on server
 
-      // 2️⃣ Upload image to backend → Cloudinary
-      const uploadRes = await fetch("http://localhost:5000/api/upload", {
+      // 2. Send to your Node.js Server
+      // Note: We don't set 'Content-Type' header; fetch handles it for FormData
+      const response = await fetch("http://localhost:5000/api/sarees", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ image: base64Image }),
+        body: data,
       });
 
-      const uploadData = await uploadRes.json();
+      const result = await response.json();
 
-      if (!uploadData.success) {
-        throw new Error("Image upload failed");
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to add saree");
       }
 
-      // 3️⃣ Prepare saree data
-      const sareePayload = {
-        name: formData.name,
-        category: formData.category,
-        price: Number(formData.price),
-        stock: Number(formData.stock),
-        description: formData.description,
-        image: uploadData.imageUrl,
-        createdAt: serverTimestamp(),
-      };
+      alert("Saree Added Successfully to Database!");
 
-      // 4️⃣ Save to Firestore
-      await addDoc(collection(db, "sarees"), sareePayload);
-
-      alert("Saree added successfully!");
-
-      // 5️⃣ Reset form
+      // 3. Reset Form
       setFormData({
         name: "",
         category: "",
@@ -87,9 +60,11 @@ const AddSaree = () => {
         description: "",
       });
       setImage(null);
+      document.getElementById("imageUpload").value = "";
+
     } catch (error) {
       console.error("ADD SAREE ERROR:", error);
-      alert("Something went wrong");
+      alert(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -98,35 +73,25 @@ const AddSaree = () => {
   return (
     <div className="min-h-screen bg-[#fffaf5] px-6 py-10">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-8">
-
-        {/* Heading */}
         <h2 className="text-3xl font-bold text-[#7b1e1e] mb-8 text-center">
           Add New Saree
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-
-          {/* Saree Name */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Saree Name
-            </label>
+            <label className="block text-sm font-medium mb-1">Saree Name</label>
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleChange}
               required
-              placeholder="e.g. Kanjeevaram Silk Saree"
               className="w-full border rounded-lg px-4 py-2"
             />
           </div>
 
-          {/* Category */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Category
-            </label>
+            <label className="block text-sm font-medium mb-1">Category</label>
             <select
               name="category"
               value={formData.category}
@@ -142,12 +107,9 @@ const AddSaree = () => {
             </select>
           </div>
 
-          {/* Price & Stock */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Price (₹)
-              </label>
+              <label className="block text-sm font-medium mb-1">Price (₹)</label>
               <input
                 type="number"
                 name="price"
@@ -157,11 +119,8 @@ const AddSaree = () => {
                 className="w-full border rounded-lg px-4 py-2"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Stock
-              </label>
+              <label className="block text-sm font-medium mb-1">Stock</label>
               <input
                 type="number"
                 name="stock"
@@ -173,28 +132,20 @@ const AddSaree = () => {
             </div>
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Description
-            </label>
+            <label className="block text-sm font-medium mb-1">Description</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
               rows="4"
-              placeholder="Fabric, design, occasion, etc."
               className="w-full border rounded-lg px-4 py-2"
             />
           </div>
 
-          {/* Image Upload */}
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Saree Image
-            </label>
-
-            <div className="border-2 border-dashed rounded-xl p-6 text-center">
+            <label className="block text-sm font-medium mb-2">Saree Image</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
               <input
                 type="file"
                 accept="image/*"
@@ -202,28 +153,19 @@ const AddSaree = () => {
                 className="hidden"
                 id="imageUpload"
               />
-              <label
-                htmlFor="imageUpload"
-                className="cursor-pointer text-[#7b1e1e] font-semibold"
-              >
+              <label htmlFor="imageUpload" className="cursor-pointer text-[#7b1e1e] font-semibold">
                 Click to upload image
               </label>
-
-              {image && (
-                <p className="mt-2 text-sm text-gray-600">
-                  Selected: {image.name}
-                </p>
-              )}
+              {image && <p className="mt-2 text-sm text-green-600">Selected: {image.name}</p>}
             </div>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-[#7b1e1e] text-white py-3 rounded-lg font-semibold hover:bg-[#5e1515] disabled:opacity-60"
           >
-            {loading ? "Uploading..." : "Add Saree"}
+            {loading ? "Uploading to Server..." : "Add Saree"}
           </button>
         </form>
       </div>
