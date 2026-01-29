@@ -38,7 +38,7 @@ const Home = () => {
 
         {/* 3. Text Content */}
         <div className="relative z-20 max-w-7xl mx-auto px-6 md:px-12 text-white">
-          <span className="text-xs uppercase tracking-[0.4em] mb-4 mt-10 block opacity-90">
+          <span className="text-xs uppercase tracking-[0.4em] mb-4 mt-50 block opacity-90">
             Curated for You
           </span>
           <h1 className="text-5xl md:text-8xl font-light leading-tight mb-6">

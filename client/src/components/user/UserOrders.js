@@ -15,7 +15,7 @@ const UserOrders = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.email) return;
 
     const q = query(
       collection(db, "orders"),
@@ -33,78 +33,84 @@ const UserOrders = () => {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user?.email]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading your orders...
-      </div>
-    );
-  }
+  if (loading) return <div className="p-20 text-center font-serif">Loading Orders...</div>;
 
   return (
-    <div className="min-h-screen bg-[#fffaf5] px-6 py-10">
-      <div className="max-w-5xl mx-auto">
-
-        <h2 className="text-3xl font-bold text-[#7b1e1e] mb-8 text-center">
-          My Orders
-        </h2>
+    <div className="min-h-screen bg-[#fffaf5] px-4 py-12 font-serif">
+      <div className="max-w-6xl mx-auto bg-white shadow-sm border border-[#f5e6d3] rounded-sm overflow-hidden">
+        
+        <div className="p-8 border-b border-[#f5e6d3] bg-white">
+          <h2 className="text-2xl font-light text-[#7b1e1e] uppercase tracking-widest text-center">Order History</h2>
+        </div>
 
         {orders.length === 0 ? (
-          <p className="text-center text-gray-500">
-            You have not placed any orders yet.
-          </p>
+          <div className="p-20 text-center text-gray-400">No orders found.</div>
         ) : (
-          <div className="space-y-6">
-            {orders.map((order) => (
-              <div
-                key={order.id}
-                className="bg-white rounded-xl shadow-md p-6"
-              >
-                {/* Header */}
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <p className="font-semibold">
-                      Order ID: {order.id}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {order.date?.toDate().toLocaleString()}
-                    </p>
-                  </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#fffaf5] text-[10px] uppercase tracking-[0.2em] text-gray-500 border-b border-[#f5e6d3]">
+                  <th className="px-6 py-4 font-bold">Passport View</th>
+                  <th className="px-6 py-4 font-bold">Order ID</th>
+                  <th className="px-6 py-4 font-bold">Status</th>
+                  <th className="px-6 py-4 font-bold text-right">Total Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {orders.map((order) => (
+                  <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                    
+                    {/* 🖼️ PASSPORT SIZE IMAGE COLUMN */}
+                    <td className="px-6 py-6">
+                      <div className="flex gap-2 flex-wrap">
+                        {order.cart.map((item, idx) => (
+                          <div key={idx} className="relative group border border-gray-200 p-0.5 bg-white shadow-sm">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              /* Standard Passport Size Ratio: 3.5cm x 4.5cm */
+                              style={{ width: '35px', height: '45px' }}
+                              className="object-cover"
+                            />
+                            {/* Simple hover label */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <span className="text-[8px] text-white font-bold">x{item.quantity}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
 
-                  <span
-                    className={`px-4 py-1 rounded-full text-sm font-medium ${
-                      order.status === "confirmed"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : order.status === "shipped"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {order.status}
-                  </span>
-                </div>
+                    {/* 📝 Order Info */}
+                    <td className="px-6 py-6">
+                      <p className="text-xs font-bold text-gray-800 tracking-wider">#{order.id.slice(0, 8).toUpperCase()}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        {order.date ? order.date.toDate().toLocaleDateString('en-GB') : "Pending"}
+                      </p>
+                    </td>
 
-                {/* Items */}
-                <div className="mb-4">
-                  <p className="font-semibold mb-2">Items:</p>
-                  <ul className="list-disc ml-6 text-sm">
-                    {order.cart.map((item, index) => (
-                      <li key={index}>
-                        {item.name} × {item.quantity} — ₹
-                        {item.price * item.quantity}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                    {/* 🏷️ Status Badge */}
+                    <td className="px-6 py-6">
+                      <span className={`text-[9px] uppercase font-bold tracking-widest px-3 py-1 rounded-sm border ${
+                        order.status === 'confirmed' ? 'border-yellow-200 text-yellow-700 bg-yellow-50' : 
+                        order.status === 'shipped' ? 'border-blue-200 text-blue-700 bg-blue-50' : 
+                        'border-green-200 text-green-700 bg-green-50'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </td>
 
-                {/* Total */}
-                <p className="text-lg font-bold text-right">
-                  Total Paid: ₹{order.totalAmount}
-                </p>
-              </div>
-            ))}
+                    {/* 💰 Price */}
+                    <td className="px-6 py-6 text-right">
+                      <p className="text-sm font-bold text-[#7b1e1e]">₹{order.totalAmount}</p>
+                      <p className="text-[9px] text-gray-400 tracking-tighter uppercase">Via Secure Pay</p>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
