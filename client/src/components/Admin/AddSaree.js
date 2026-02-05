@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 const AddSaree = () => {
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -10,48 +13,48 @@ const AddSaree = () => {
   });
 
   const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImage(file);
+      setPreview(URL.createObjectURL(file));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage("");
 
     if (!image) {
-      alert("Please upload an image");
+      setMessage("Please upload a saree image.");
       return;
     }
 
     try {
       setLoading(true);
 
-      // 1. Prepare FormData (Matches your server's upload.single('image'))
       const data = new FormData();
-      data.append("name", formData.name);
-      data.append("category", formData.category);
-      data.append("price", formData.price);
-      data.append("stock", formData.stock);
-      data.append("description", formData.description);
-      data.append("image", image); // The key 'image' must match req.file on server
+      Object.entries(formData).forEach(([k, v]) => data.append(k, v));
+      data.append("image", image);
+      data.append("sellerId", user.uid); // 🔐 seller binding
 
-      // 2. Send to your Node.js Server
-      // Note: We don't set 'Content-Type' header; fetch handles it for FormData
-      const response = await fetch("http://localhost:5000/api/sarees", {
+      const res = await fetch("http://localhost:5000/api/sarees", {
         method: "POST",
         body: data,
       });
 
-      const result = await response.json();
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Upload failed");
 
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to add saree");
-      }
+      setMessage("Saree added successfully.");
 
-      alert("Saree Added Successfully to Database!");
-
-      // 3. Reset Form
       setFormData({
         name: "",
         category: "",
@@ -60,38 +63,69 @@ const AddSaree = () => {
         description: "",
       });
       setImage(null);
+      setPreview(null);
       document.getElementById("imageUpload").value = "";
-
-    } catch (error) {
-      console.error("ADD SAREE ERROR:", error);
-      alert(`Error: ${error.message}`);
+    } catch (err) {
+      setMessage(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fffaf5] px-6 py-10">
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-8">
-        <h2 className="text-3xl font-bold text-[#7b1e1e] mb-8 text-center">
+    <div className="min-h-screen bg-[#fffaf5]">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <h1 className="text-3xl font-semibold text-[#7b1e1e] mb-10">
           Add New Saree
-        </h2>
+        </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 md:grid-cols-2 gap-10 bg-white p-10 rounded-2xl shadow-md"
+        >
+          {/* IMAGE */}
           <div>
-            <label className="block text-sm font-medium mb-1">Saree Name</label>
+            <p className="font-medium mb-3">Saree Image</p>
+            <div className="border-2 border-dashed border-[#e5d3a3] rounded-xl p-6 text-center">
+              {preview ? (
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="w-full h-72 object-cover rounded-lg mb-4"
+                />
+              ) : (
+                <p className="text-gray-500 mb-4">
+                  Upload a high-quality saree image
+                </p>
+              )}
+
+              <input
+                id="imageUpload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <label
+                htmlFor="imageUpload"
+                className="cursor-pointer px-6 py-2 border border-[#7b1e1e] text-[#7b1e1e] rounded-lg hover:text-[#c9a24d] hover:border-[#c9a24d]"
+              >
+                Choose Image
+              </label>
+            </div>
+          </div>
+
+          {/* FORM */}
+          <div className="space-y-5">
             <input
-              type="text"
               name="name"
+              placeholder="Saree Name"
               value={formData.name}
               onChange={handleChange}
               required
               className="w-full border rounded-lg px-4 py-2"
             />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Category</label>
             <select
               name="category"
               value={formData.category}
@@ -99,74 +133,55 @@ const AddSaree = () => {
               required
               className="w-full border rounded-lg px-4 py-2"
             >
-              <option value="">Select category</option>
+              <option value="">Select Category</option>
               <option value="Kanjeevaram">Kanjeevaram</option>
               <option value="Banarasi">Banarasi</option>
               <option value="Chanderi">Chanderi</option>
               <option value="Mysore Silk">Mysore Silk</option>
             </select>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-1">Price (₹)</label>
+            <div className="grid grid-cols-2 gap-4">
               <input
                 type="number"
                 name="price"
+                placeholder="Price (₹)"
                 value={formData.price}
                 onChange={handleChange}
                 required
-                className="w-full border rounded-lg px-4 py-2"
+                className="border rounded-lg px-4 py-2"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Stock</label>
               <input
                 type="number"
                 name="stock"
+                placeholder="Stock"
                 value={formData.stock}
                 onChange={handleChange}
                 required
-                className="w-full border rounded-lg px-4 py-2"
+                className="border rounded-lg px-4 py-2"
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
             <textarea
               name="description"
+              placeholder="Description"
+              rows="4"
               value={formData.description}
               onChange={handleChange}
-              rows="4"
               className="w-full border rounded-lg px-4 py-2"
             />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Saree Image</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImage(e.target.files[0])}
-                className="hidden"
-                id="imageUpload"
-              />
-              <label htmlFor="imageUpload" className="cursor-pointer text-[#7b1e1e] font-semibold">
-                Click to upload image
-              </label>
-              {image && <p className="mt-2 text-sm text-green-600">Selected: {image.name}</p>}
-            </div>
-          </div>
+            {message && (
+              <p className="text-sm text-[#7b1e1e]">{message}</p>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#7b1e1e] text-white py-3 rounded-lg font-semibold hover:bg-[#5e1515] disabled:opacity-60"
-          >
-            {loading ? "Uploading to Server..." : "Add Saree"}
-          </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#7b1e1e] text-white py-3 rounded-lg font-semibold hover:bg-[#5e1515]"
+            >
+              {loading ? "Uploading…" : "Add Saree"}
+            </button>
+          </div>
         </form>
       </div>
     </div>

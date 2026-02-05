@@ -1,126 +1,140 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../../firebase';
-import { collection, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from "react";
+import { db } from "../../firebase";
+import {
+  collection,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  updateDoc,
+  query,
+  where,
+} from "firebase/firestore";
+import { useAuth } from "../../context/AuthContext";
 
 const ManageProducts = () => {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, "sarees"), (snapshot) => {
-            setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            setLoading(false);
-        });
-        return () => unsubscribe();
-    }, []);
+  useEffect(() => {
+    if (!user) return;
 
-    const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this saree from the inventory?")) {
-            await deleteDoc(doc(db, "sarees", id));
-        }
-    };
-
-    const handleUpdateStock = async (id, currentStock) => {
-        const newStock = prompt("Enter new stock quantity:", currentStock);
-        if (newStock !== null && !isNaN(newStock)) {
-            await updateDoc(doc(db, "sarees", id), {
-                stock: Number(newStock)
-            });
-        }
-    };
-
-    if (loading) return <div className="p-20 text-center font-serif italic text-gray-500">Loading Inventory...</div>;
-
-    return (
-        <div className="min-h-screen bg-[#fffaf5] p-8 font-serif">
-            <div className="max-w-7xl mx-auto bg-white shadow-sm border border-[#f5e6d3] rounded-sm overflow-hidden">
-                
-                {/* Header Area */}
-                <div className="p-8 border-b border-[#f5e6d3] flex justify-between items-center bg-white">
-                    <div>
-                        <h2 className="text-2xl font-light text-[#7b1e1e] uppercase tracking-widest">Inventory Management</h2>
-                        <p className="text-xs text-gray-400 mt-1 uppercase tracking-tighter">Manage your collection and stock levels</p>
-                    </div>
-                    <div className="text-right">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Products: {products.length}</span>
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-[#fffaf5] text-[10px] uppercase tracking-[0.2em] text-gray-500 border-b border-[#f5e6d3]">
-                                <th className="px-6 py-4 font-bold">Preview</th>
-                                <th className="px-6 py-4 font-bold">Product Details</th>
-                                <th className="px-6 py-4 font-bold">Price</th>
-                                <th className="px-6 py-4 font-bold">Availability</th>
-                                <th className="px-6 py-4 font-bold text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {products.map((p) => (
-                                <tr key={p.id} className={`transition-colors hover:bg-gray-50/50 ${p.stock < 3 ? 'bg-red-50/30' : ''}`}>
-                                    
-                                    {/* Passport Size Preview */}
-                                    <td className="px-6 py-4">
-                                        <div className="border border-gray-200 p-0.5 bg-white shadow-sm inline-block">
-                                            <img 
-                                                src={p.image} 
-                                                style={{ width: '35px', height: '45px' }} 
-                                                className="object-cover" 
-                                                alt={p.name} 
-                                            />
-                                        </div>
-                                    </td>
-
-                                    {/* Name and ID */}
-                                    <td className="px-6 py-4">
-                                        <p className="text-sm font-bold text-gray-800 uppercase tracking-tight">{p.name}</p>
-                                        <p className="text-[9px] text-gray-400 uppercase">ID: {p.id.slice(0, 8)}</p>
-                                    </td>
-
-                                    {/* Price */}
-                                    <td className="px-6 py-4">
-                                        <p className="text-sm font-medium text-[#7b1e1e]">₹{p.price}</p>
-                                    </td>
-
-                                    {/* Stock Status Badge */}
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className={`text-[10px] font-bold uppercase tracking-widest ${p.stock < 3 ? 'text-red-600' : 'text-gray-700'}`}>
-                                                {p.stock} in stock
-                                            </span>
-                                            {p.stock < 3 && (
-                                                <span className="text-[8px] font-bold text-red-500 uppercase mt-0.5 animate-pulse">
-                                                    ⚠️ Low Stock Alert
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>
-
-                                    {/* Actions */}
-                                    <td className="px-6 py-4 text-right space-x-2">
-                                        <button 
-                                            onClick={() => handleUpdateStock(p.id, p.stock)} 
-                                            className="text-[10px] uppercase tracking-widest font-bold px-4 py-2 border border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition-all"
-                                        >
-                                            Update Stock
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDelete(p.id)} 
-                                            className="text-[10px] uppercase tracking-widest font-bold px-4 py-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    const q = query(
+      collection(db, "sarees"),
+      where("sellerId", "==", user.uid)
     );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setProducts(
+        snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+      );
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Delete this saree?")) {
+      await deleteDoc(doc(db, "sarees", id));
+    }
+  };
+
+  const handleUpdateStock = async (id, stock) => {
+    const newStock = prompt("Enter new stock:", stock);
+    if (newStock && !isNaN(newStock)) {
+      await updateDoc(doc(db, "sarees", id), {
+        stock: Number(newStock),
+      });
+    }
+  };
+
+  if (loading)
+    return (
+      <div className="p-20 text-center text-gray-500">
+        Loading inventory…
+      </div>
+    );
+
+  if (products.length === 0)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fffaf5]">
+        <p className="text-gray-500">
+          No products added yet.
+        </p>
+      </div>
+    );
+
+  return (
+    <div className="min-h-screen bg-[#fffaf5] p-8">
+      <div className="max-w-7xl mx-auto bg-white shadow border rounded">
+        <div className="p-6 border-b">
+          <h2 className="text-xl text-[#7b1e1e]">
+            Inventory Management
+          </h2>
+          <p className="text-xs text-gray-400">
+            Your products only
+          </p>
+        </div>
+
+        <table className="w-full text-sm">
+          <thead className="bg-[#fffaf5] text-gray-500">
+            <tr>
+              <th className="p-4">Image</th>
+              <th>Name</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th className="text-right pr-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((p) => (
+              <tr
+                key={p.id}
+                className={`border-t ${
+                  p.stock < 3 ? "bg-red-50" : ""
+                }`}
+              >
+                <td className="p-4">
+                  <img
+                    src={p.image}
+                    alt={p.name}
+                    className="w-10 h-14 object-cover"
+                  />
+                </td>
+                <td className="font-medium">{p.name}</td>
+                <td>₹{p.price}</td>
+                <td>
+                  {p.stock}
+                  {p.stock < 3 && (
+                    <span className="text-red-500 text-xs ml-2">
+                      Low
+                    </span>
+                  )}
+                </td>
+                <td className="text-right pr-4 space-x-2">
+                  <button
+                    onClick={() =>
+                      handleUpdateStock(p.id, p.stock)
+                    }
+                    className="text-xs px-3 py-1 border hover:bg-black hover:text-white"
+                  >
+                    Update
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p.id)}
+                    className="text-xs px-3 py-1 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 };
 
 export default ManageProducts;

@@ -8,28 +8,53 @@ import {
   query,
 } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const Orders = () => {
+  const { user } = useAuth(); // current seller
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+
     const q = query(
       collection(db, "orders"),
       orderBy("date", "desc")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((docItem) => ({
+      const allOrders = snapshot.docs.map((docItem) => ({
         id: docItem.id,
         ...docItem.data(),
       }));
-      setOrders(data);
+
+      // 🔐 FILTER ORDERS FOR THIS SELLER ONLY
+      const sellerOrders = allOrders
+        .map((order) => {
+          const sellerItems = order.cart.filter(
+            (item) => item.sellerId === user.uid
+          );
+
+          if (sellerItems.length === 0) return null;
+
+          return {
+            ...order,
+            cart: sellerItems,
+            totalAmount: sellerItems.reduce(
+              (sum, i) => sum + i.price * i.quantity,
+              0
+            ),
+          };
+        })
+        .filter(Boolean);
+
+      setOrders(sellerOrders);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const updateStatus = async (orderId, newStatus) => {
     try {
@@ -54,14 +79,13 @@ const Orders = () => {
   return (
     <div className="min-h-screen bg-[#fffaf5] px-6 py-10">
       <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-6">
-
         <h2 className="text-3xl font-bold text-[#7b1e1e] mb-8 text-center">
-          Customer Orders
+          Your Orders
         </h2>
 
         {orders.length === 0 ? (
           <p className="text-center text-gray-500">
-            No orders yet.
+            No orders for your products yet.
           </p>
         ) : (
           <div className="space-y-6">
@@ -71,7 +95,7 @@ const Orders = () => {
                 className="border rounded-xl p-5 shadow-sm"
               >
                 {/* Header */}
-                <div className="flex flex-wrap justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-4">
                   <div>
                     <p className="font-semibold">
                       Order ID: {order.id}
@@ -101,9 +125,9 @@ const Orders = () => {
                   <p><strong>Address:</strong> {order.customerAddress}</p>
                 </div>
 
-                {/* Items */}
+                {/* Items (ONLY THIS SELLER) */}
                 <div className="mb-4">
-                  <p className="font-semibold mb-2">Items:</p>
+                  <p className="font-semibold mb-2">Your Items:</p>
                   <ul className="list-disc ml-6 text-sm">
                     {order.cart.map((item, index) => (
                       <li key={index}>
@@ -115,7 +139,7 @@ const Orders = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="flex flex-wrap justify-between items-center">
+                <div className="flex justify-between items-center">
                   <p className="text-lg font-bold">
                     Total: ₹{order.totalAmount}
                   </p>
